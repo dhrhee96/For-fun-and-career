@@ -1,13 +1,20 @@
 # main.py
 """
-KOSPI 200 옵션 프라이싱 & 델타 헤징 시뮬레이터 실행 스크립트.
+KOSPI 200 옵션 프라이싱, 델타 헤징, 채권가격 산정 통합 실행 스크립트.
 
-실행
+기본 실행
     python main.py
+    실행 후 `옵션산정` 또는 `채권산정` 입력
 
-선택 실행
-    python main.py --data data_0020_20260414.csv
-    python main.py --plot
+바로 실행
+    python main.py 옵션산정
+    python main.py 채권산정
+    python main.py --mode option
+    python main.py --mode bond
+
+옵션 모드 선택 실행
+    python main.py 옵션산정 --data data_0020_20260414.csv
+    python main.py 옵션산정 --plot
 """
 
 from __future__ import annotations
@@ -18,6 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from bond_pricing import run_bond_pricing_cli
 from data_scraper import (
     DEFAULT_DATA_FILE,
     build_iv_table,
@@ -35,6 +43,34 @@ from pricing_engine import (
 from visualizer import plot_volatility_surface
 
 
+OPTION_MODE_ALIASES = {
+    "1",
+    "option",
+    "options",
+    "derivative",
+    "derivatives",
+    "option_pricing",
+    "옵션",
+    "옵션산정",
+    "옵션가격",
+    "파생상품",
+    "파생상품산정",
+}
+
+BOND_MODE_ALIASES = {
+    "2",
+    "bond",
+    "bonds",
+    "bond_pricing",
+    "fixed_income",
+    "채권",
+    "채권산정",
+    "채권가격",
+    "채권가격산정",
+    "채권평가",
+}
+
+
 def format_krw(value: float) -> str:
     return f"{value:,.0f}원"
 
@@ -47,6 +83,41 @@ def print_section(title: str) -> None:
     print("\n" + "=" * 72)
     print(title)
     print("=" * 72)
+
+
+def resolve_app_mode(mode_text: str | None) -> str | None:
+    """사용자 입력을 option/bond 내부 모드명으로 정규화합니다."""
+    if mode_text is None:
+        return None
+
+    normalized = str(mode_text).strip().lower().replace(" ", "").replace("-", "_")
+    if normalized == "":
+        return None
+    if normalized in OPTION_MODE_ALIASES:
+        return "option"
+    if normalized in BOND_MODE_ALIASES:
+        return "bond"
+    return None
+
+
+def prompt_app_mode() -> str:
+    """터미널 입력으로 실행 모드를 선택합니다."""
+    print("\n" + "=" * 72)
+    print("실행 모드 선택")
+    print("=" * 72)
+    print("1. 옵션산정: KOSPI 200 옵션 가격, Greeks, IV, 델타 헤징")
+    print("2. 채권산정: 채권가격, YTM, 듀레이션, 컨벡서티, DV01")
+
+    try:
+        user_input = input("실행할 모드를 입력하세요 [옵션산정/채권산정, 기본값: 옵션산정]: ")
+    except EOFError:
+        return "option"
+
+    mode = resolve_app_mode(user_input)
+    if mode is None:
+        print("입력값을 인식하지 못해 기본값인 옵션산정으로 실행합니다.")
+        return "option"
+    return mode
 
 
 def pick_scenario_from_data(df: pd.DataFrame) -> dict[str, float | str | None]:
@@ -232,12 +303,26 @@ def run_quant_system(data_file: str | Path = DEFAULT_DATA_FILE, plot: bool = Fal
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="KOSPI 200 옵션 프라이싱 및 델타 헤징 시뮬레이터")
-    parser.add_argument("--data", default=str(DEFAULT_DATA_FILE), help="KRX CSV 파일 경로")
+    parser = argparse.ArgumentParser(description="옵션산정 및 채권산정 통합 실행기")
+    parser.add_argument("mode_text", nargs="?", help="옵션산정 또는 채권산정")
+    parser.add_argument("--mode", default=None, help="option/bond 또는 옵션산정/채권산정")
+    parser.add_argument("--data", default=str(DEFAULT_DATA_FILE), help="옵션산정 모드용 KRX CSV 파일 경로")
     parser.add_argument("--plot", action="store_true", help="옵션 데이터가 충분할 경우 변동성 곡면 표시")
     return parser.parse_args()
 
 
-if __name__ == "__main__":
+def main() -> None:
     args = parse_args()
-    run_quant_system(data_file=args.data, plot=args.plot)
+    mode = resolve_app_mode(args.mode or args.mode_text)
+
+    if mode is None:
+        mode = prompt_app_mode()
+
+    if mode == "bond":
+        run_bond_pricing_cli()
+    else:
+        run_quant_system(data_file=args.data, plot=args.plot)
+
+
+if __name__ == "__main__":
+    main()
