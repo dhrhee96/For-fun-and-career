@@ -1,14 +1,14 @@
-# KOSPI 200 Option Pricing & Delta Hedging Simulator
+# KOSPI 200 Option Pricing, Delta Hedging & Bond Pricing Simulator
 
-한국거래소(KRX) KOSPI 200 파생상품 CSV를 기반으로 옵션 가격, Greeks, 내재변동성, Crank-Nicolson FDM 검증, 델타 헤징 손익을 한 번에 확인하는 연구용 Python 프로젝트입니다.
+한국거래소(KRX) KOSPI 200 파생상품 CSV를 기반으로 옵션 가격, Greeks, 내재변동성, Crank-Nicolson FDM 검증, 델타 헤징 손익을 확인하고, 추가로 **채권가격 산정, YTM 역산, 듀레이션, 컨벡서티, DV01**까지 계산하는 연구용 Python 프로젝트입니다.
 
-이 프로젝트의 목적은 단순히 Black-Scholes-Merton 공식을 계산하는 데 그치지 않고, **시장가격 → IV 역산 → Greeks 산출 → 시장 충격 → 헤지 손익 → 거래비용 차감 후 Net PnL**의 흐름을 코드로 재현하는 것입니다.
+이 프로젝트의 목적은 단순 계산기를 넘어서, 파생상품과 채권을 같은 금융공학 관점에서 연결해 설명할 수 있는 포트폴리오용 분석 도구를 만드는 것입니다.
 
 ---
 
 ## 주요 기능
 
-### 1. Pricing Engine
+### 1. Option Pricing Engine
 
 - Call/Put 공통 Black-Scholes-Merton 가격 산출
 - Delta, Gamma, Theta, Vega, Rho 계산
@@ -32,7 +32,16 @@
 - 시장 충격 후 Net PnL 산출
 - 지수 충격률과 변동성 충격값을 조합한 스트레스 테스트 제공
 
-### 4. Visualization
+### 4. Bond Pricing Engine
+
+- 고정금리 이표채 가격 산정
+- 시장가격 기반 YTM 역산
+- 현금흐름별 할인계수와 현재가치 테이블 생성
+- Macaulay Duration, Modified Duration 계산
+- Convexity 계산
+- DV01 및 금리 ±1bp, ±100bp 변화 시 가격 민감도 계산
+
+### 5. Visualization
 
 - 옵션 데이터가 충분할 경우 IV surface 렌더링 가능
 - 데이터가 부족하면 자동으로 surface 생성을 생략
@@ -43,10 +52,11 @@
 
 ```text
 파생상품/
+├── bond_pricing.py          # 채권가격, YTM, Duration, Convexity, DV01
 ├── data_0020_20260414.csv   # KRX 다운로드 CSV 샘플
 ├── data_scraper.py          # KRX CSV 로드/정규화/ATM 선택
 ├── hedging_simulator.py     # 델타 헤징 및 스트레스 테스트
-├── main.py                  # 전체 실행 스크립트
+├── main.py                  # 옵션산정/채권산정 통합 실행 스크립트
 ├── pricing_engine.py        # BSM, Greeks, IV, FDM 엔진
 ├── requirements.txt         # 실행 의존성
 └── visualizer.py            # IV surface 시각화
@@ -71,25 +81,103 @@ pip install numpy pandas scipy matplotlib finance-datareader
 
 ## 실행
 
+### 1. 메뉴에서 선택
+
 ```bash
 python main.py
+```
+
+실행 후 아래처럼 입력합니다.
+
+```text
+옵션산정
+```
+
+또는
+
+```text
+채권산정
+```
+
+### 2. 옵션산정 바로 실행
+
+```bash
+python main.py 옵션산정
+```
+
+또는
+
+```bash
+python main.py --mode option
 ```
 
 다른 CSV 파일을 지정하려면:
 
 ```bash
-python main.py --data your_krx_file.csv
+python main.py 옵션산정 --data your_krx_file.csv
 ```
 
 옵션 데이터가 충분하고 IV surface를 보고 싶다면:
 
 ```bash
-python main.py --plot
+python main.py 옵션산정 --plot
+```
+
+### 3. 채권산정 바로 실행
+
+```bash
+python main.py 채권산정
+```
+
+또는
+
+```bash
+python main.py --mode bond
+```
+
+채권산정 모드에서는 다음 값을 입력합니다. 입력을 비우면 기본 예시값으로 계산됩니다.
+
+```text
+액면가
+표면금리(%)
+잔존만기(년)
+연 이자 지급 횟수
+시장 YTM(%)
+YTM 역산용 시장가격
 ```
 
 ---
 
-## 실행 결과 예시
+## 채권산정 출력 예시
+
+```text
+========================================================================
+채권가격 산정 모드
+========================================================================
+입력을 비우면 기본 예시값으로 계산합니다.
+
+------------------------------------------------------------------------
+1. 채권 가격 산정 결과
+------------------------------------------------------------------------
+액면가: 10,000.00원
+표면금리: 3.5000%
+YTM: 3.8000%
+잔존만기: 3.0000년
+이자 지급 횟수: 연 2회
+이론가격: 9,918.98원
+
+------------------------------------------------------------------------
+2. 금리 민감도
+------------------------------------------------------------------------
+Macaulay Duration: 2.857xxx년
+Modified Duration: 2.803xxx
+Convexity: 9.0xxxxx
+DV01: 2.78원  # 금리 1bp 변화 시 가격 민감도
+```
+
+---
+
+## 옵션산정 출력 예시
 
 ```text
 ========================================================================
@@ -126,20 +214,23 @@ Rho/1%p: 0.3829 pt
 
 이 프로젝트는 다음 순서로 설명하면 자연스럽습니다.
 
-1. **데이터 정제**: KRX 원시 CSV를 읽고, 종목명에서 옵션 타입·만기·행사가를 추출했습니다.
-2. **이론가 계산**: BSM 모델로 옵션 이론가격과 Greeks를 계산했습니다.
+1. **옵션 데이터 정제**: KRX 원시 CSV를 읽고, 종목명에서 옵션 타입·만기·행사가를 추출했습니다.
+2. **옵션 이론가 계산**: BSM 모델로 옵션 이론가격과 Greeks를 계산했습니다.
 3. **시장가격 연결**: 시장가격이 있을 경우 IV를 역산하여 단순 가정 변동성이 아니라 시장이 반영한 변동성을 사용하도록 설계했습니다.
 4. **수치해석 검증**: closed-form BSM 가격과 Crank-Nicolson FDM 가격을 비교해 계산 엔진의 안정성을 확인했습니다.
 5. **리스크 관리 연결**: Delta-neutral hedge를 구성하고, 지수 하락 및 IV 상승 시나리오에서 옵션 손익과 헤지 손익을 분해했습니다.
-6. **스트레스 테스트**: 지수 충격과 변동성 충격을 조합해 Net PnL이 어떤 방향으로 변하는지 확인했습니다.
+6. **채권가격 산정 확장**: 옵션뿐 아니라 고정금리 이표채 가격, YTM, Duration, Convexity, DV01을 계산하도록 확장해 금리 리스크 관점까지 연결했습니다.
+7. **스트레스 테스트**: 지수 충격, 변동성 충격, 금리 충격이 금융상품 가격에 어떤 영향을 주는지 정량적으로 확인할 수 있습니다.
 
 ---
 
 ## 향후 개선 과제
 
 - 실제 옵션 전체 체인 CSV를 추가해 volatility smile/surface 계산 고도화
-- 만기일 자동 계산 로직 추가
+- 옵션 만기일 자동 계산 로직 추가
 - 선물 가격 기반 hedge와 현물지수 기반 hedge를 분리
+- 채권 결제일, 경과이자, clean price/dirty price 분리
+- 국고채/회사채 신용스프레드 반영
 - 거래비용, 슬리피지, 증거금 로직 세분화
 - Streamlit 또는 FastAPI 기반 대시보드화
 - 테스트 코드(`pytest`) 추가
