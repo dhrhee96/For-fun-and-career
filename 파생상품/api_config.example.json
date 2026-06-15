@@ -1,0 +1,60 @@
+{
+  "krx_derivatives": {
+    "description": "KRX 파생상품 전종목 시세 API 예시. 실제 endpoint, headers, params는 발급받은 API 문서에 맞게 수정하세요.",
+    "url": "https://example.krx.api/derivatives/all-products",
+    "method": "GET",
+    "response_format": "json",
+    "timeout": 20,
+    "api_key_env": "KRX_API_KEY",
+    "api_key_name": "Authorization",
+    "api_key_location": "header",
+    "api_key_prefix": "Bearer ",
+    "headers": {
+      "Accept": "application/json"
+    },
+    "params": {
+      "market": "DERIVATIVES",
+      "product": "KOSPI200_OPTIONS",
+      "date": "${TARGET_DATE}"
+    },
+    "data_path": ["data", "rows"],
+    "column_map": {
+      "isu_cd": "종목코드",
+      "isu_nm": "종목명",
+      "close": "종가",
+      "open": "시가",
+      "high": "고가",
+      "low": "저가",
+      "underlying": "현물가",
+      "volume": "거래량",
+      "value": "거래대금",
+      "open_interest": "미결제약정"
+    }
+  },
+  "ecos_government_bond_yield": {
+    "description": "한국은행 ECOS Open API 국고채 금리 예시. 통계코드와 항목코드는 ECOS에서 확인 후 수정하세요.",
+    "url": "https://ecos.bok.or.kr/api/StatisticSearch/${BOK_API_KEY}/json/kr/1/100/${STAT_CODE}/D/${START_DATE}/${END_DATE}/${ITEM_CODE}",
+    "method": "GET",
+    "response_format": "json",
+    "timeout": 20,
+    "headers": {
+      "Accept": "application/json"
+    },
+    "params": {},
+    "data_path": ["StatisticSearch", "row"],
+    "column_map": {
+      "TIME": "date",
+      "DATA_VALUE": "yield_pct",
+      "ITEM_NAME1": "name"
+    }
+  },
+  "generic_csv_api": {
+    "description": "CSV를 직접 반환하는 API용 예시",
+    "url": "https://example.api/download.csv",
+    "method": "GET",
+    "response_format": "csv",
+    "timeout": 20,
+    "headers": {},
+    "params": {}
+  }
+}
