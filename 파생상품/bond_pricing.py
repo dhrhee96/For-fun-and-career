@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -187,14 +187,20 @@ def run_sample_bond_pricing() -> Dict[str, float]:
 
 
 def _read_float(prompt: str, default: float) -> float:
-    raw = input(f"{prompt} [기본값: {default}]: ").strip()
+    try:
+        raw = input(f"{prompt} [기본값: {default}]: ").strip()
+    except EOFError:
+        return float(default)
     if raw == "":
         return float(default)
     return float(raw.replace(",", ""))
 
 
 def _read_int(prompt: str, default: int) -> int:
-    raw = input(f"{prompt} [기본값: {default}]: ").strip()
+    try:
+        raw = input(f"{prompt} [기본값: {default}]: ").strip()
+    except EOFError:
+        return int(default)
     if raw == "":
         return int(default)
     return int(raw.replace(",", ""))
