@@ -37,6 +37,7 @@
 ### 4. Bond Pricing Engine
 
 - 고정금리 이표채 가격 산정
+- Clean Price / Dirty Price / Accrued Interest 분리
 - 시장가격 기반 YTM 역산
 - 현금흐름별 할인계수와 현재가치 테이블 생성
 - Macaulay Duration, Modified Duration 계산
@@ -186,6 +187,32 @@ python main.py --mode bond
 연 이자 지급 횟수
 시장 YTM(%)
 YTM 역산용 시장가격
+발행일 또는 직전 이표일(YYYY-MM-DD, 선택)
+만기일(YYYY-MM-DD, 선택)
+결제일(YYYY-MM-DD, 선택)
+Day count convention(ACT/365, ACT/ACT, 30/360)
+```
+
+날짜 입력을 비우면 기존처럼 `maturity_years` 기반의 단순 이표채 가격을 계산합니다. 날짜를 입력하면 결제일 이후 현금흐름만 할인해서 Dirty Price를 계산하고, 직전 이표일 이후 결제일까지의 Accrued Interest를 차감해 Clean Price를 함께 출력합니다.
+
+예시:
+
+```text
+발행일 또는 직전 이표일: 2025-01-01
+만기일: 2027-01-01
+결제일: 2026-04-01
+Day count convention: ACT/365
+```
+
+출력에는 아래 항목이 추가됩니다.
+
+```text
+Dirty Price
+Accrued Interest
+Clean Price
+직전 이표일
+다음 이표일
+경과일수 / 전체 이표기간일수
 ```
 
 ### 5. 국고채 금리 API 사용 예시
@@ -273,15 +300,18 @@ ECOS 통계코드와 항목코드는 한국은행 ECOS에서 확인해 `STAT_COD
 YTM: 3.8000%
 잔존만기: 3.0000년
 이자 지급 횟수: 연 2회
-이론가격: 9,918.98원
+Dirty Price: 9,915.69원
+Accrued Interest: 0.00원
+Clean Price: 9,915.69원
+이론가격: 9,915.69원
 
 ------------------------------------------------------------------------
 2. 금리 민감도
 ------------------------------------------------------------------------
-Macaulay Duration: 2.857xxx년
-Modified Duration: 2.803xxx
-Convexity: 9.0xxxxx
-DV01: 2.78원  # 금리 1bp 변화 시 가격 민감도
+Macaulay Duration: 2.873xxx년
+Modified Duration: 2.819xxx
+Convexity: 9.5xxxxx
+DV01: 2.80원  # 금리 1bp 변화 시 가격 민감도
 ```
 
 ---
