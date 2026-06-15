@@ -14,6 +14,7 @@ KOSPI 200 옵션 프라이싱, 델타 헤징, 채권가격 산정 통합 실행 
 
 옵션 모드 선택 실행
     python main.py 옵션산정 --data data_0020_20260414.csv
+    python main.py 옵션산정 --source api --api-config api_config.json
     python main.py 옵션산정 --plot
 """
 
@@ -27,6 +28,7 @@ import pandas as pd
 
 from bond_pricing import run_bond_pricing_cli
 from data_scraper import (
+    DEFAULT_API_CONFIG_FILE,
     DEFAULT_DATA_FILE,
     build_iv_table,
     get_krx_kospi200_options,
@@ -122,7 +124,7 @@ def prompt_app_mode() -> str:
 
 def pick_scenario_from_data(df: pd.DataFrame) -> dict[str, float | str | None]:
     """
-    CSV에 실제 옵션 데이터가 있으면 ATM 옵션을 사용하고,
+    CSV/API에 실제 옵션 데이터가 있으면 ATM 옵션을 사용하고,
     현재 샘플처럼 선물/스프레드만 있으면 이론 시나리오로 자동 전환합니다.
     """
     underlying = infer_underlying_price(df) or 897.0
@@ -150,24 +152,45 @@ def pick_scenario_from_data(df: pd.DataFrame) -> dict[str, float | str | None]:
                 }
             )
     except Exception:
-        # 현재 저장된 CSV가 선물/스프레드 중심일 때는 여기로 들어옵니다.
+        # 저장된 데이터가 선물/스프레드 중심일 때는 여기로 들어옵니다.
         pass
 
     return scenario
 
 
-def run_quant_system(data_file: str | Path = DEFAULT_DATA_FILE, plot: bool = False) -> None:
+def run_quant_system(
+    data_file: str | Path = DEFAULT_DATA_FILE,
+    plot: bool = False,
+    source: str = "csv",
+    api_config: str | Path = DEFAULT_API_CONFIG_FILE,
+    api_profile: str = "krx_derivatives",
+    target_date: str | None = None,
+) -> None:
     print_section("KOSPI 200 Option Pricing & Delta Hedging Simulator")
 
     data_file = Path(data_file)
+    source = source.lower()
 
     try:
-        df_options = get_krx_kospi200_options(file_path=data_file)
+        df_options = get_krx_kospi200_options(
+            target_date=target_date,
+            file_path=data_file,
+            source=source,
+            config_path=api_config,
+            api_profile=api_profile,
+        )
         option_count = int(df_options.get("is_option", pd.Series(dtype=bool)).sum())
-        print(f"데이터 로드 성공: {data_file.name}")
+        if source == "api":
+            print(f"데이터 로드 성공: API profile={api_profile}")
+        else:
+            print(f"데이터 로드 성공: {data_file.name}")
         print(f"전체 행 수: {len(df_options):,}개 / 인식된 옵션 행 수: {option_count:,}개")
-    except FileNotFoundError:
-        print(f"데이터 파일을 찾지 못했습니다: {data_file}")
+    except FileNotFoundError as exc:
+        print(f"데이터 파일 또는 API 설정을 찾지 못했습니다: {exc}")
+        print("내장 이론 시나리오로 계산을 진행합니다.")
+        df_options = pd.DataFrame()
+    except Exception as exc:
+        print(f"데이터 로드 중 문제가 발생했습니다: {exc}")
         print("내장 이론 시나리오로 계산을 진행합니다.")
         df_options = pd.DataFrame()
 
@@ -185,12 +208,12 @@ def run_quant_system(data_file: str | Path = DEFAULT_DATA_FILE, plot: bool = Fal
         S0 = float(picked["S0"])
         K = float(picked["K"])
         market_price = picked["market_price"]
-        source = picked["source"]
+        data_source = picked["source"]
     else:
         S0 = 897.0
         K = 897.5
         market_price = None
-        source = "fallback_theoretical"
+        data_source = "fallback_theoretical"
 
     T = days_to_expiry / 365.0
 
@@ -202,7 +225,7 @@ def run_quant_system(data_file: str | Path = DEFAULT_DATA_FILE, plot: bool = Fal
     fdm_price = fdm_crank_nicolson(S0, K, T, risk_free_rate, sigma_for_pricing, option_type="C", M=300, N=300)
 
     print_section("1. 포지션 진입 가정")
-    print(f"데이터 소스: {source}")
+    print(f"데이터 소스: {data_source}")
     print(f"기초지수 S0: {S0:,.2f} pt")
     print(f"행사가 K: {K:,.2f} pt")
     print(f"잔존만기: {days_to_expiry}일")
@@ -307,6 +330,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("mode_text", nargs="?", help="옵션산정 또는 채권산정")
     parser.add_argument("--mode", default=None, help="option/bond 또는 옵션산정/채권산정")
     parser.add_argument("--data", default=str(DEFAULT_DATA_FILE), help="옵션산정 모드용 KRX CSV 파일 경로")
+    parser.add_argument("--source", choices=["csv", "api"], default="csv", help="옵션 데이터 소스")
+    parser.add_argument("--api-config", default=str(DEFAULT_API_CONFIG_FILE), help="API 설정 JSON 파일 경로")
+    parser.add_argument("--api-profile", default="krx_derivatives", help="API 설정 파일 내 profile 이름")
+    parser.add_argument("--target-date", default=None, help="API 조회 기준일. 예: 20260615")
     parser.add_argument("--plot", action="store_true", help="옵션 데이터가 충분할 경우 변동성 곡면 표시")
     return parser.parse_args()
 
@@ -321,7 +348,14 @@ def main() -> None:
     if mode == "bond":
         run_bond_pricing_cli()
     else:
-        run_quant_system(data_file=args.data, plot=args.plot)
+        run_quant_system(
+            data_file=args.data,
+            plot=args.plot,
+            source=args.source,
+            api_config=args.api_config,
+            api_profile=args.api_profile,
+            target_date=args.target_date,
+        )
 
 
 if __name__ == "__main__":
