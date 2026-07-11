@@ -1,0 +1,10 @@
+# Local API credentials/config
+api_config.json
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local outputs
+*.log
