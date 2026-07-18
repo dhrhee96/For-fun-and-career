@@ -12,6 +12,10 @@ public class ApiResponseMapper {
         mapped.put("couponFrequency", toInt(raw.get("couponFrequency"), 2));
         mapped.put("marketPrice", toDouble(raw.get("marketPrice"), 10000.0));
         mapped.put("ytm", toDouble(raw.get("ytm"), 0.035));
+        mapped.put("issueDate", toString(raw.get("issueDate"), null));
+        mapped.put("maturityDate", toString(raw.get("maturityDate"), null));
+        mapped.put("settlementDate", toString(raw.get("settlementDate"), null));
+        mapped.put("dayCount", toString(raw.get("dayCount"), "ACT/365"));
         return mapped;
     }
 
@@ -41,5 +45,13 @@ public class ApiResponseMapper {
             }
         }
         return fallback;
+    }
+
+    private static String toString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        String text = String.valueOf(value).trim();
+        return text.isEmpty() ? fallback : text;
     }
 }
