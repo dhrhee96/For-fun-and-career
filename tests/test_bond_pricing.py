@@ -64,3 +64,8 @@ def test_legacy_maturity_years_pricing_still_works():
     spec = BondSpec(face_value=10_000, coupon_rate=0.035, maturity_years=3, coupon_frequency=2)
 
     assert price_bond(spec, 0.038) == pytest.approx(9915.6942, rel=1e-6)
+
+
+def test_non_positive_face_value_is_rejected():
+    with pytest.raises(ValueError):
+        BondSpec(face_value=0, coupon_rate=0.035, maturity_years=3, coupon_frequency=2)

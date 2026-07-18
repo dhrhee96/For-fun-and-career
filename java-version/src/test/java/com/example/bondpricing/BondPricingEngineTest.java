@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisplayName("Bond pricing engine")
@@ -117,5 +118,19 @@ public class BondPricingEngineTest {
         assertTrue(metrics[1] > 0.0);
         assertTrue(metrics[2] > 0.0);
         assertTrue(metrics[3] > 0.0);
+    }
+
+    @Test
+    @DisplayName("non-positive market prices are rejected")
+    void testNonPositiveMarketPriceIsRejected() {
+        BondSpec spec = new BondSpec(10000, 0.035, 3.0, 2);
+        BondPricingEngine engine = new BondPricingEngine();
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> engine.yieldToMaturityFromPrice(spec, 0.0)
+        );
+
+        assertEquals("marketPrice must be positive", error.getMessage());
     }
 }
