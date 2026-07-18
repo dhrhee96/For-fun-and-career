@@ -4,3 +4,4 @@ scipy>=1.10
 matplotlib>=3.7
 requests>=2.31
 finance-datareader>=0.9.90
+pytest>=8.0

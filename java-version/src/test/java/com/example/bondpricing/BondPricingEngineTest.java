@@ -1,13 +1,16 @@
 package com.example.bondpricing;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisplayName("Bond pricing engine")
 public class BondPricingEngineTest {
 
     @Test
+    @DisplayName("dirty price matches the reference value")
     void testDirtyPriceMatchesReference() {
         BondSpec spec = new BondSpec(10000, 0.035, 3.0, 2);
         BondPricingEngine engine = new BondPricingEngine();
@@ -18,6 +21,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("clean and dirty prices match when dates are absent")
     void testCleanPriceMatchesDirtyWhenDatesAreAbsent() {
         BondSpec spec = new BondSpec(10000, 0.04, 3.0, 2);
         BondPricingEngine engine = new BondPricingEngine();
@@ -30,6 +34,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("accrued interest is zero on a coupon date")
     void testAccruedInterestIsZeroOnCouponDate() {
         BondSpec spec = new BondSpec(
                 10000,
@@ -51,6 +56,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("accrued interest is approximately half a coupon halfway through")
     void testAccruedInterestIsAboutHalfwayThroughPeriod() {
         BondSpec spec = new BondSpec(
                 10000,
@@ -67,6 +73,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("dirty price equals clean price plus accrued interest")
     void testDirtyPriceEqualsCleanPricePlusAccruedInterestForDatedBond() {
         BondSpec spec = new BondSpec(
                 10000,
@@ -88,6 +95,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("YTM can be recovered from a calculated market price")
     void testYieldToMaturityRoundTrip() {
         BondSpec spec = new BondSpec(10000, 0.035, 3.0, 2);
         BondPricingEngine engine = new BondPricingEngine();
@@ -99,6 +107,7 @@ public class BondPricingEngineTest {
     }
 
     @Test
+    @DisplayName("duration and convexity metrics are positive")
     void testDurationAndConvexityArePositive() {
         BondSpec spec = new BondSpec(10000, 0.035, 3.0, 2);
         BondPricingEngine engine = new BondPricingEngine();

@@ -1,6 +1,7 @@
 package com.example.bondpricing;
 
 import com.example.bondpricing.data.CsvToBondInput;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -9,9 +10,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisplayName("Data mapping and Java/Python comparison")
 public class DataMappingAndComparisonTest {
 
     @Test
+    @DisplayName("CSV rows are converted into bond inputs")
     void testCsvParsingCreatesExpectedRows() {
         List<String> rows = List.of(
                 "10000,3.5,3,2,9800,3.8",
@@ -28,6 +31,7 @@ public class DataMappingAndComparisonTest {
     }
 
     @Test
+    @DisplayName("mapped API input produces matching calculation results")
     void testApiResponseMappingAndComparison() {
         Map<String, Object> raw = Map.of(
                 "faceValue", 10000,

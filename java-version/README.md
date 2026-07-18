@@ -26,6 +26,20 @@ This folder contains a Java port of the core bond pricing features from the Pyth
 mvn test
 ```
 
+From the repository root, run both the Python and Java unit tests with a
+single, readable report:
+
+```powershell
+.\run-tests.ps1
+```
+
+The command prints every Python and Java test and finishes with one combined
+pass/fail result.
+
+Prerequisites are Python dependencies from `requirements.txt`, JDK 17, and
+Maven available on `PATH`. Missing prerequisites are reported as `SKIP`
+instead of terminating the report abruptly.
+
 ## Example
 ```java
 BondSpec spec = new BondSpec(10000, 0.035, 3.0, 2);
